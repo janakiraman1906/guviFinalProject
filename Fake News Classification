@@ -1,0 +1,46 @@
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report
+import pickle
+
+# Step 1: Load the train and test datasets
+train_url = "https://drive.google.com/file/d/1waOoV5Mg8nZEC9fqvk0875e7Vg8Wp85K/view?usp=sharing"
+train_path = "https://drive.google.com/uc?export=download&id="+train_url.split("/")[-2]
+test_url = "https://drive.google.com/file/d/1jLE4eMby6zigoznc1p2VLMVq9VnGT9L_/view?usp=sharing"
+test_path = "https://drive.google.com/uc?export=download&id="+test_url.split("/")[-2]
+
+train_df = pd.read_csv(train_path)
+test_df = pd.read_csv(test_path)
+
+# Step 2: Text preprocessing and feature extraction
+# Combine title and text columns
+train_df['content'] = train_df['title'] + ' ' + train_df['text']
+test_df['content'] = test_df['title'] + ' ' + test_df['text']
+
+# Handle missing values
+train_df.fillna('', inplace=True)
+test_df.fillna('', inplace=True)
+
+# Step 3: Feature extraction
+vectorizer = TfidfVectorizer(max_features=5000)
+X_train = vectorizer.fit_transform(train_df['content'])
+X_test = vectorizer.transform(test_df['content'])
+y_train = train_df['label']
+
+# Step 4: Train the model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Step 5: Evaluate the model
+y_pred_train = model.predict(X_train)
+print("Training Accuracy:", accuracy_score(y_train, y_pred_train))
+print("Classification Report (Training Data):\n", classification_report(y_train, y_pred_train))
+
+# Step 6: Predict on test data
+y_pred_test = model.predict(X_test)
+
+# Step 7: Save the predictions
+test_df['label'] = y_pred_test
+test_df[['id', 'label']].to_csv('predictions.csv', index=False)
